@@ -7,6 +7,16 @@
   const SRC = () => Sources.get('rookery');        // v1 single source; multi-source merge comes with more adapters
   const LS = { acc: 'zt:accounts', active: 'zt:active' };
 
+  /* ---- Call config (easy to tune) ---- */
+  const CALL_MIN_VOL = 10;   // a coin needs at least this much USD volume to qualify as a call
+  const TIERS = [            // wallet rank by realized profit (USD, buy/sell net across scanned markets), high → low
+    { min: 20000, name: 'Beast', cls: 'beast', emoji: '🐉' },
+    { min: 10000, name: 'Alpha', cls: 'alpha', emoji: '⚡' },
+    { min: 5000,  name: 'Smart', cls: 'smart', emoji: '⭐' },
+  ];
+  const tierOf = net => { for (const t of TIERS) if (net >= t.min) return t; return null; };
+  const tierRank = t => t ? TIERS.length - TIERS.indexOf(t) : 0;
+
   const state = {
     accounts: load(LS.acc, []),      // [{user,label}]
     active: load(LS.active, null),   // username, or null = a top-level view
@@ -164,23 +174,50 @@
   }
   function renderCalls() {
     const now = Date.now(), T = state.tokens;
-    const fresh = T.filter(t => now - t.created < 6 * 3600e3).sort((a, b) => b.created - a.created).slice(0, 10);
-    const movers = T.filter(t => t.ch24 != null && t.volumeUsd > 50).sort((a, b) => b.ch24 - a.ch24).slice(0, 8);
-    const near = T.filter(t => t.progress >= 15 && t.progress < 100).sort((a, b) => b.progress - a.progress).slice(0, 8);
     const sec = (title, toks, right) => toks.length ? `<div class="side-h" style="padding:16px 8px 8px">${title}</div><table class="tbl"><tbody>${toks.map(t => callRow(t, right(t))).join('')}</tbody></table>` : '';
-    const html = sec('🆕 FRESH LAUNCHES', fresh, t => ago(t.created) + ' ago')
+
+    // ---- real (smart-money) calls ----
+    let smartHtml = '';
+    const calls = state.callsData;
+    if (state.smartScanning && !calls) {
+      smartHtml = `<div class="empty">Scanning wallets for smart-money calls… ${state.smartProgress || ''}</div>`;
+    } else if (calls && calls.length) {
+      const rows = calls.slice(0, 20).map(c => {
+        const t = c.token, badges = c.wallets.slice(0, 4).map(w => `<span class="tier ${w.tier.cls}">${w.tier.emoji} @${esc(w.user)}</span>`).join(' ');
+        return `<tr class="ovrow" data-id="${esc(t.id)}">
+          <td><div class="coin">${avatar(t)}<div><div class="nm">${esc(t.name)} <span class="muted">$${esc(t.sym)}</span> <span class="tier ${c.tier.cls}">${c.tier.emoji} ${c.tier.name}</span></div><div class="ad">${badges}</div></div></div></td>
+          <td class="mono">${usd(t.mcapUsd)}<div class="ad">${usd(t.volumeUsd)} vol</div></td>
+          <td>${chg(t.ch24)}</td></tr>`;
+      }).join('');
+      smartHtml = `<div class="side-h" style="padding:4px 8px 8px">⭐ SMART-MONEY CALLS <span class="muted" style="font-weight:600">· tiered wallet bought · min ${usd(CALL_MIN_VOL)} vol</span></div><table class="tbl"><tbody>${rows}</tbody></table>`;
+    } else if (calls) {
+      smartHtml = `<div class="empty" style="padding:22px 16px">No smart-money calls yet — no wallet has crossed <b>${usd(5000)}</b> realized profit on this young chain.${state.topNet ? ` Top trader so far: <b>${usd(state.topNet)}</b>.` : ''}<br><span class="muted">Tiers: ⭐ Smart ${usd(5000)} · ⚡ Alpha ${usd(10000)} · 🐉 Beast ${usd(20000)}+ · auto-fills as the chain grows.</span> <button class="lnk" id="clRescan">Rescan</button></div>`;
+    } else {
+      smartHtml = `<div class="empty">Loading calls… <button class="lnk" id="clRescan">Scan now</button></div>`;
+    }
+
+    // ---- launchpad pulse (mechanical) ----
+    const fresh = T.filter(t => now - t.created < 6 * 3600e3).sort((a, b) => b.created - a.created).slice(0, 8);
+    const movers = T.filter(t => t.ch24 != null && t.volumeUsd > CALL_MIN_VOL).sort((a, b) => b.ch24 - a.ch24).slice(0, 6);
+    const near = T.filter(t => t.progress >= 15 && t.progress < 100).sort((a, b) => b.progress - a.progress).slice(0, 6);
+    const pulse = sec('🆕 FRESH LAUNCHES', fresh, t => ago(t.created) + ' ago')
       + sec('🚀 TOP MOVERS · 24h', movers, t => chg(t.ch24))
       + sec('🔥 NEAR BONDING', near, t => `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:flex-end">${t.progress.toFixed(1)}%<span class="bar"><b style="width:${Math.min(100, t.progress)}%"></b></span></span>`);
-    $('panel').innerHTML = html || `<div class="empty">No calls right now.</div>`;
+
+    $('panel').innerHTML = smartHtml + pulse;
+    const rb = $('clRescan'); if (rb) rb.onclick = () => scanSmart();
     $('panel').querySelectorAll('tr.ovrow').forEach(tr => tr.onclick = () => openToken(tr.dataset.id));
   }
 
   /* ---------- smart wallets ---------- */
   async function scanSmart() {
     const a = SRC(); if (!a || !a.getToken) return;
-    state.smartScanning = true; if (state.active == null && state.view === 'smart') renderSmart();
-    const top = state.tokens.slice().filter(t => t.trades > 0).sort((x, y) => y.volumeUsd - x.volumeUsd).slice(0, 24);
-    const agg = {}; const q = top.slice(); let done = 0;
+    state.smartScanning = true;
+    if (state.active == null && (state.view === 'smart' || state.view === 'calls')) renderCurrent();
+    const top = state.tokens.slice().filter(t => t.trades > 0).sort((x, y) => y.volumeUsd - x.volumeUsd).slice(0, 30);
+    const agg = {};          // user -> {user,trades,buy,sell}
+    const buyers = {};       // marketId -> { user -> buyUsd }  (who bought this coin)
+    const q = top.slice(); let done = 0;
     const worker = async () => {
       while (q.length) {
         const m = q.shift();
@@ -189,18 +226,35 @@
           for (const tr of (d.trades || [])) {
             const u = tr.who || '?'; if (u === '?') continue;
             const g = agg[u] || (agg[u] = { user: u, trades: 0, buy: 0, sell: 0 });
-            g.trades++; if (tr.side === 'buy') g.buy += tr.usd || 0; else g.sell += tr.usd || 0;
+            g.trades++;
+            if (tr.side === 'buy') { g.buy += tr.usd || 0; (buyers[m.id] || (buyers[m.id] = {}))[u] = ((buyers[m.id] || {})[u] || 0) + (tr.usd || 0); }
+            else g.sell += tr.usd || 0;
           }
         } catch {}
         done++; state.smartProgress = done + '/' + top.length;
-        if (state.active == null && state.view === 'smart' && done % 4 === 0) renderSmart();
+        if (state.active == null && (state.view === 'smart' || state.view === 'calls') && done % 4 === 0) renderCurrent();
       }
     };
     await Promise.all(Array.from({ length: 6 }, worker));
-    state.smart = Object.values(agg).map(g => ({ ...g, vol: g.buy + g.sell, net: g.sell - g.buy }))
-      .filter(g => g.trades >= 2).sort((x, y) => y.vol - x.vol).slice(0, 50);
+    // wallet leaderboard with realized-profit tier
+    const users = Object.values(agg).map(g => { const net = g.sell - g.buy; return { ...g, vol: g.buy + g.sell, net, tier: tierOf(net) }; });
+    state.smart = users.filter(g => g.trades >= 2).sort((x, y) => y.vol - x.vol).slice(0, 50);
+    const tierByUser = {}; users.forEach(u => { if (u.tier) tierByUser[u.user] = u; });
+    // build smart calls: coins (vol >= min) that a tiered wallet bought
+    const calls = [];
+    for (const m of state.tokens) {
+      if ((m.volumeUsd || 0) < CALL_MIN_VOL) continue;
+      const bset = buyers[m.id]; if (!bset) continue;
+      const wallets = Object.keys(bset).map(u => tierByUser[u]).filter(Boolean)
+        .sort((x, y) => tierRank(y.tier) - tierRank(x.tier));
+      if (!wallets.length) continue;
+      calls.push({ token: m, tier: wallets[0].tier, wallets });
+    }
+    calls.sort((x, y) => tierRank(y.tier) - tierRank(x.tier) || (y.token.volumeUsd - x.token.volumeUsd));
+    state.callsData = calls;
+    state.topNet = users.reduce((mx, u) => Math.max(mx, u.net), 0);
     state.smartScanning = false;
-    if (state.active == null && state.view === 'smart') renderSmart();
+    if (state.active == null && (state.view === 'smart' || state.view === 'calls')) renderCurrent();
   }
   function renderSmart() {
     if (state.smartScanning && !state.smart) { $('panel').innerHTML = `<div class="empty">Scanning trader activity… ${state.smartProgress || ''}</div>`; return; }
@@ -251,7 +305,7 @@
     state.view = v; state.active = null; save(LS.active, null);
     state.tab = 'markets';
     renderSidebar(); renderCurrent();
-    if (v === 'smart' && !state.smart && !state.smartScanning) scanSmart();
+    if ((v === 'smart' || v === 'calls') && !state.smart && !state.smartScanning) scanSmart();
   }
   function selectAccount(user) {
     state.active = user; save(LS.active, user);
