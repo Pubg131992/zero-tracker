@@ -9,10 +9,12 @@
 
   const state = {
     accounts: load(LS.acc, []),      // [{user,label}]
-    active: load(LS.active, null),   // username or null (null = Markets view)
+    active: load(LS.active, null),   // username, or null = a top-level view
+    view: 'markets',                 // markets | calls | smart  (used when active==null)
     tokens: [], byId: {}, zroUsd: 0,
     tab: 'markets',
     accData: {},                     // user -> account (holdings)
+    smart: null, smartScanning: false, // smart-wallet leaderboard cache
     scanning: false,
   };
 
@@ -60,13 +62,20 @@
 
   /* ---------- render: sidebar ---------- */
   function renderSidebar() {
+    const nav = $('nav');
+    if (nav) {
+      const items = [['markets', 'Markets'], ['calls', 'Calls'], ['smart', 'Smart wallets']];
+      nav.innerHTML = '';
+      for (const [v, label] of items) {
+        const b = document.createElement('button');
+        b.className = 'wl' + (state.active == null && state.view === v ? ' on' : '');
+        b.innerHTML = `<span class="wd"></span><span class="wt"><span class="wn">${label}</span></span>`;
+        b.onclick = () => selectView(v);
+        nav.appendChild(b);
+      }
+    }
     const box = $('alist'); box.innerHTML = '';
-    // "Markets" (no account) pseudo-row
-    const mk = document.createElement('button');
-    mk.className = 'wl' + (state.active == null ? ' on' : '');
-    mk.innerHTML = `<span class="wd"></span><span class="wt"><span class="wn">All markets</span></span>`;
-    mk.onclick = () => selectAccount(null);
-    box.appendChild(mk);
+    if (!state.accounts.length) box.innerHTML = `<div class="muted" style="padding:6px 8px">No accounts yet</div>`;
     for (const a of state.accounts) {
       const acc = state.accData[a.user];
       const row = document.createElement('button');
@@ -85,8 +94,10 @@
     const acct = state.active ? state.accData[state.active] : null;
     // header
     if (state.active == null) {
-      $('hName').textContent = 'Markets';
-      $('hSubTxt').textContent = 'Zero · Stinky Penguin launchpad';
+      const titles = { markets: ['Markets', 'Zero · Stinky Penguin launchpad'], calls: ['Calls', 'Fresh launches, movers & near-bonding'], smart: ['Smart wallets', 'Top Rookery traders by realized activity'] };
+      const t = titles[state.view] || titles.markets;
+      $('hName').textContent = t[0];
+      $('hSubTxt').textContent = t[1];
       $('holdTab').hidden = true;
       if (state.tab === 'hold') state.tab = 'markets';
     } else {
@@ -107,7 +118,10 @@
     }
     // tabs active state
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.t === state.tab));
-    if (state.tab === 'hold' && acct) renderHoldings(acct); else renderMarkets();
+    if (state.active) { if (state.tab === 'hold' && acct) renderHoldings(acct); else renderMarkets(); }
+    else if (state.view === 'calls') renderCalls();
+    else if (state.view === 'smart') renderSmart();
+    else renderMarkets();
   }
 
   function renderMarkets() {
@@ -144,6 +158,69 @@
     $('panel').querySelectorAll('tr.ovrow').forEach(tr => tr.onclick = () => openToken(tr.dataset.id));
   }
 
+  /* ---------- calls ---------- */
+  function callRow(t, right) {
+    return `<tr class="ovrow" data-id="${esc(t.id)}"><td><div class="coin">${avatar(t)}<div><div class="nm">${esc(t.name)} <span class="muted">$${esc(t.sym)}</span></div><div class="ad">${usd(t.mcapUsd)} mcap · ${t.holders} holders · ${t.trades} trades</div></div></div></td><td class="mono">${right}</td></tr>`;
+  }
+  function renderCalls() {
+    const now = Date.now(), T = state.tokens;
+    const fresh = T.filter(t => now - t.created < 6 * 3600e3).sort((a, b) => b.created - a.created).slice(0, 10);
+    const movers = T.filter(t => t.ch24 != null && t.volumeUsd > 50).sort((a, b) => b.ch24 - a.ch24).slice(0, 8);
+    const near = T.filter(t => t.progress >= 15 && t.progress < 100).sort((a, b) => b.progress - a.progress).slice(0, 8);
+    const sec = (title, toks, right) => toks.length ? `<div class="side-h" style="padding:16px 8px 8px">${title}</div><table class="tbl"><tbody>${toks.map(t => callRow(t, right(t))).join('')}</tbody></table>` : '';
+    const html = sec('🆕 FRESH LAUNCHES', fresh, t => ago(t.created) + ' ago')
+      + sec('🚀 TOP MOVERS · 24h', movers, t => chg(t.ch24))
+      + sec('🔥 NEAR BONDING', near, t => `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:flex-end">${t.progress.toFixed(1)}%<span class="bar"><b style="width:${Math.min(100, t.progress)}%"></b></span></span>`);
+    $('panel').innerHTML = html || `<div class="empty">No calls right now.</div>`;
+    $('panel').querySelectorAll('tr.ovrow').forEach(tr => tr.onclick = () => openToken(tr.dataset.id));
+  }
+
+  /* ---------- smart wallets ---------- */
+  async function scanSmart() {
+    const a = SRC(); if (!a || !a.getToken) return;
+    state.smartScanning = true; if (state.active == null && state.view === 'smart') renderSmart();
+    const top = state.tokens.slice().filter(t => t.trades > 0).sort((x, y) => y.volumeUsd - x.volumeUsd).slice(0, 24);
+    const agg = {}; const q = top.slice(); let done = 0;
+    const worker = async () => {
+      while (q.length) {
+        const m = q.shift();
+        try {
+          const d = await a.getToken(m.id);
+          for (const tr of (d.trades || [])) {
+            const u = tr.who || '?'; if (u === '?') continue;
+            const g = agg[u] || (agg[u] = { user: u, trades: 0, buy: 0, sell: 0 });
+            g.trades++; if (tr.side === 'buy') g.buy += tr.usd || 0; else g.sell += tr.usd || 0;
+          }
+        } catch {}
+        done++; state.smartProgress = done + '/' + top.length;
+        if (state.active == null && state.view === 'smart' && done % 4 === 0) renderSmart();
+      }
+    };
+    await Promise.all(Array.from({ length: 6 }, worker));
+    state.smart = Object.values(agg).map(g => ({ ...g, vol: g.buy + g.sell, net: g.sell - g.buy }))
+      .filter(g => g.trades >= 2).sort((x, y) => y.vol - x.vol).slice(0, 50);
+    state.smartScanning = false;
+    if (state.active == null && state.view === 'smart') renderSmart();
+  }
+  function renderSmart() {
+    if (state.smartScanning && !state.smart) { $('panel').innerHTML = `<div class="empty">Scanning trader activity… ${state.smartProgress || ''}</div>`; return; }
+    const list = state.smart || [];
+    if (!list.length) { $('panel').innerHTML = `<div class="empty">No trader activity found yet. <button class="lnk" id="smRescan">Rescan</button></div>`; const b = $('smRescan'); if (b) b.onclick = () => scanSmart(); return; }
+    const rows = list.map((g, i) => `
+      <tr class="ovrow" data-u="${esc(g.user)}">
+        <td><div class="coin"><div class="av">${esc((g.user || '?').slice(0, 3))}</div><div><div class="nm">@${esc(g.user)}</div><div class="ad">${g.trades} trades</div></div></div></td>
+        <td class="mono">${usd(g.vol)}</td>
+        <td class="mono">${usd(g.buy)}</td>
+        <td class="mono">${usd(g.sell)}</td>
+        <td class="mono">${g.net >= 0 ? '<span class="up">+' + usd(g.net) + '</span>' : '<span class="down">-' + usd(-g.net) + '</span>'}</td>
+      </tr>`).join('');
+    $('panel').innerHTML = `<table class="tbl">
+      <thead><tr><th>Trader</th><th>Volume</th><th>Bought</th><th>Sold</th><th>Net flow</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div class="foot" style="text-align:left;padding:10px 8px">Click a trader to track their holdings · scanned top ${Math.min(24, state.tokens.length)} markets by volume${state.smartScanning ? ' · refreshing…' : ''}</div>`;
+    $('panel').querySelectorAll('tr.ovrow').forEach(tr => tr.onclick = () => addAccount(tr.dataset.u, ''));
+  }
+
   /* ---------- token detail modal ---------- */
   async function openToken(id) {
     const box = $('tokBox'); $('tokModal').classList.add('on');
@@ -170,6 +247,12 @@
   }
 
   /* ---------- account actions ---------- */
+  function selectView(v) {
+    state.view = v; state.active = null; save(LS.active, null);
+    state.tab = 'markets';
+    renderSidebar(); renderCurrent();
+    if (v === 'smart' && !state.smart && !state.smartScanning) scanSmart();
+  }
   function selectAccount(user) {
     state.active = user; save(LS.active, user);
     if (state.active) state.tab = 'hold'; else state.tab = 'markets';
