@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/rk/:path*", "destination": "https://rookery.stinkypenguin.xyz/:path*" }
+  ]
+}
