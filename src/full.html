@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zero Tracker · Rookery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#f5f3ee; --card:#fffdf9; --line:#e7e2d8; --soft:#f0ede6;
+--ink:#2d3229; --ink2:#5a6054; --ink3:#6b7064;
+--acc:#4f7d64; --accSoft:#e6efe8; --accInk:#3a6650;
+--up:#2f6b4b; --upBg:#e3f0e7; --dn:#934535; --dnBg:#f6e7e1; --warn:#8a5a00; --warnBg:#f8ecd4;
+--r:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"DM Sans",system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased}
+.mono{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit}
+.card,.glass{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.shell{width:100%;margin:0;padding:28px 32px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.side{flex:1 1 260px;max-width:300px;padding:18px;display:flex;flex-direction:column;gap:4px;position:sticky;top:20px}
+.main{flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:20px}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 6px 16px}
+.brand .logo{width:38px;height:38px;border-radius:12px;background:var(--acc);display:grid;place-items:center;color:#fff;flex:none;font-weight:800}
+.brand b{display:block;font-size:17px;font-weight:700}
+.brand small{display:block;font-size:13px;font-weight:600;color:var(--ink3)}
+.side-h{font-size:12px;font-weight:700;color:var(--ink3);padding:0 6px 6px;letter-spacing:.06em}
+.wl{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;box-sizing:border-box;width:100%}
+.wl:hover{background:var(--soft)}
+.wl.on{background:var(--accSoft)}
+.wl .wd{width:10px;height:10px;border-radius:50%;flex:none;background:var(--acc)}
+.wl .wt{display:flex;flex-direction:column;flex:1;min-width:0}
+.wl .wn{font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wl.on .wn{font-weight:800}
+.wl .wv{font-size:14px;font-weight:700;color:var(--ink)}
+.addw{all:unset;display:block;box-sizing:border-box;width:100%;cursor:pointer;margin-top:6px;padding:12px;border-radius:12px;border:1.5px dashed var(--acc);color:var(--accInk);font-size:15px;font-weight:700;text-align:center}
+.addw:hover{background:var(--accSoft)}
+.head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.head h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em}
+.head .sub{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--ink3);margin-top:2px}
+.lnk{all:unset;cursor:pointer;font-size:12px;font-weight:700;color:var(--accInk)}
+.lnk:hover{text-decoration:underline}
+.lnk.danger:hover{color:var(--dn)}
+.spacer{flex:1}
+.btn{font-size:15px;font-weight:700;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:11px 18px;cursor:pointer}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff;display:inline-flex;align-items:center;gap:8px}
+.btn.primary:hover{background:var(--accInk)}
+.btn:disabled{opacity:.6;cursor:wait}
+.hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.kpi{padding:22px 24px;display:flex;flex-direction:column;gap:8px}
+.kpi .lbl{font-size:14px;font-weight:600;color:var(--ink3)}
+.kpi .val{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.kpi .val small{font-size:16px;font-weight:600;color:var(--ink3);margin-left:4px}
+.kpi .sub{font-size:14px;font-weight:600;color:var(--ink2)}
+.kpi.main{background:var(--acc);border-color:var(--acc);color:#fff}
+.kpi.main .lbl,.kpi.main .sub,.kpi.main .val small{color:#fff}
+.up{color:var(--up)} .down{color:var(--dn)}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:13px;font-weight:700}
+.pill.up{background:var(--upBg);color:var(--up)} .pill.down{background:var(--dnBg);color:var(--dn)}
+.tabs{display:flex;gap:4px;padding:5px;border-radius:16px;background:var(--accSoft);width:max-content;max-width:100%;overflow:auto}
+.tab{all:unset;cursor:pointer;padding:11px 18px;border-radius:12px;font-size:15px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.tab .n{font-size:13px;margin-left:6px;color:var(--ink2)}
+.tab.on{background:var(--card);color:var(--ink);font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.panel{padding:6px}
+.scroll{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:13px;font-weight:700;color:var(--ink3);text-align:right;padding:14px 16px;white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{padding:14px 16px;text-align:right;font-size:15px;font-weight:600;border-top:1px solid var(--line);white-space:nowrap;vertical-align:middle;font-variant-numeric:tabular-nums}
+.tbl tr.ovrow{cursor:pointer}
+.tbl tr:hover td{background:#faf8f3}
+.muted{color:var(--ink3);font-weight:600;font-size:13px}
+.coin{display:flex;align-items:center;gap:12px}
+.av{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;flex:none;overflow:hidden;background:var(--acc)}
+.av img{width:100%;height:100%;object-fit:cover}
+.coin .nm{font-weight:700;font-size:16px}
+.coin .ad{font-size:13px;color:var(--ink3);font-weight:600}
+.bar{height:6px;border-radius:6px;background:var(--soft);width:90px;margin-left:auto;overflow:hidden}
+.bar b{display:block;height:100%;border-radius:6px;background:var(--acc)}
+.empty{padding:36px 20px;text-align:center;color:var(--ink3);font-size:14px;font-weight:600}
+.foot{margin-top:6px;text-align:center;font-size:13px;color:var(--ink3);font-weight:600;line-height:1.7}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;padding:12px 18px;font-size:14px;font-weight:700;z-index:50;background:var(--ink);color:#fff;border-radius:12px}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.skel{display:inline-block;width:60px;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--soft),var(--line),var(--soft));background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.modal{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:rgba(45,50,41,.25);padding:16px}
+.modal.on{display:grid}
+.mbox{width:min(560px,100%);max-height:88vh;overflow:auto;padding:22px;background:var(--card);border-radius:18px;border:1px solid var(--line)}
+.mbox h3{margin:0 0 2px;font-size:19px;font-weight:800}
+.mbox p{margin:0 0 14px;font-size:14px;color:var(--ink3);font-weight:600}
+.mbox label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:12px}
+.mbox input{display:block;width:100%;margin-top:6px;font-size:15px;font-weight:600;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);outline:none}
+.mbox input:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--accSoft)}
+.merr{min-height:18px;font-size:13px;font-weight:700;color:var(--dn);margin:-4px 0 8px}
+.mbtns{display:flex;justify-content:flex-end;gap:8px}
+.progress{height:6px;border-radius:6px;background:var(--soft);overflow:hidden;margin:6px 0}
+.progress b{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+[hidden]{display:none!important}
+@media (max-width:1100px){.hero{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.shell{padding:12px}.side{max-width:none;position:static}.hero{grid-template-columns:1fr}.kpi .val{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side card">
+<div class="brand"><div class="logo">Ø</div><div><b>Zero Tracker</b><small>Rookery · priced in ZRO</small></div></div>
+<div class="side-h">ACCOUNTS</div>
+<div id="alist"></div>
+<button class="addw" id="addBtn">+ Add account</button>
+</aside>
+<main class="main">
+<div class="head">
+<div>
+<h1 id="hName">Markets</h1>
+<div class="sub" id="hSub"><span id="hSubTxt">Zero · Stinky Penguin launchpad</span></div>
+</div>
+<div class="spacer"></div>
+<button class="btn primary" id="refreshBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg>Refresh</button>
+</div>
+<div class="hero">
+<div class="kpi card main"><div class="lbl" id="k0l">Tokens on Rookery</div><div class="val mono" id="k0"><span class="skel"></span></div><div class="sub" id="k0s">&nbsp;</div></div>
+<div class="kpi card"><div class="lbl" id="k1l">Total volume</div><div class="val mono" id="k1"><span class="skel"></span></div><div class="sub" id="k1s">&nbsp;</div></div>
+<div class="kpi card"><div class="lbl" id="k2l">ZRO price</div><div class="val mono" id="k2"><span class="skel"></span></div><div class="sub" id="k2s">&nbsp;</div></div>
+</div>
+<div class="tabs" id="tabs">
+<button class="tab on" data-t="markets">Markets<span class="n" id="nMarkets">0</span></button>
+<button class="tab" data-t="hold" id="holdTab" hidden>Holdings<span class="n" id="nHold">0</span></button>
+</div>
+<div class="panel card scroll" id="panel"></div>
+<div class="foot">
+Data: Rookery (rookery.stinkypenguin.xyz) · Zero by LayerZero · ZRO-priced bonding curve · pre-mainnet (balances migrate 1:1 at mainnet)<br>
+Accounts are tracked by Rookery username · more sources plug in as they launch
+</div>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="addModal"><div class="mbox" role="dialog" aria-modal="true">
+<h3>Add account</h3><p>Track a Rookery account by its username (shown on trades &amp; holders).</p>
+<label>Rookery username<input id="aUser" placeholder="e.g. pengu_408c3d" autocomplete="off" spellcheck="false"></label>
+<label>Label <span class="muted">(optional)</span><input id="aLabel" placeholder="e.g. My account" maxlength="32" autocomplete="off"></label>
+<div class="merr" id="aErr"></div>
+<div class="mbtns"><button class="btn" id="aCancel">Cancel</button><button class="btn primary" id="aOk">Add &amp; scan</button></div>
+</div></div>
+<div class="modal" id="tokModal"><div class="mbox" role="dialog" aria-modal="true" id="tokBox"></div></div>
+<script>
+(()=>{const t=new Map,e=[],n={register(n){if(!n||!n.id)throw new Error("adapter needs an id");return t.has(n.id)||e.push(n.id),n.caps=Object.assign({account:!1,trade:!1,transfer:!1,onchain:!1},n.caps||{}),t.set(n.id,n),window.dispatchEvent(new CustomEvent("sources:changed",{detail:{id:n.id}})),n},get:e=>t.get(e),list:()=>e.map(e=>t.get(e)).filter(Boolean),has:e=>t.has(e),default:()=>t.get(e[0]),async listTokens(){const t=[];for(const e of this.list())try{const n=await e.listTokens();Array.isArray(n)&&t.push(...n)}catch(t){console.warn("[src]",e.id,"listTokens",t)}return t},srcOf:e=>t.get(e)};n.util={num(t){const e=+t;return Number.isFinite(e)?e:0},fromWei(t,e=18){try{const n=String(t);return n&&"0"!==n?Number(BigInt(n))/10**e:0}catch{return+t/10**e||0}},async json(t,e){const n=await fetch(t,Object.assign({headers:{accept:"application/json"}},e||{}));if(!n.ok)throw new Error(t+" "+n.status);return n.json()},shortUsd(t){t=+t||0;const e=Math.abs(t);return e>=1e9?"$"+(t/1e9).toFixed(2)+"B":e>=1e6?"$"+(t/1e6).toFixed(2)+"M":e>=1e3?"$"+(t/1e3).toFixed(1)+"K":"$"+t.toFixed(e<1?4:2)}},window.Sources=n})(),(()=>{const t=window.Sources.util,e="/rk/api",n=new Map;function s(e){return{src:"rookery",id:e.id,sym:e.symbol,name:e.name,img:e.image?"/rk"+e.image:"",priceUsd:t.num(e.priceUsd),priceNative:t.num(e.priceZro),mcapUsd:t.num(e.mcapUsd),ch5m:null==e.change5m?null:t.num(e.change5m),ch1h:null==e.change1h?null:t.num(e.change1h),ch24:null==e.change24h?null:t.num(e.change24h),progress:t.num(e.progress),trades:t.num(e.trades),holders:t.num(e.holders),volumeUsd:t.num(e.volumeUsd),liquidityUsd:t.num(e.liquidityUsd),created:t.num(e.created),creator:e.creator||"",graduated:!!e.graduated,desc:e.description||"",x:e.x||"",tg:e.tg||"",web:e.web||"",raw:e}}async function a(){const n=await t.json(e+"/markets",{cache:"no-store"});return(n&&n.markets||[]).map(s)}async function o(a){const o=n.get(a);if(o&&Date.now()-o.at<15e3)return o.data;const c=await t.json(e+"/market/"+encodeURIComponent(a),{cache:"no-store"}),i=s(c.market||{}),d=t.num(c.zroUsd),r=(c.trades||[]).map(e=>({src:"rookery",tokenId:a,sym:i.sym,side:e.side,who:e.username||"",native:t.fromWei(e.zro,18),usd:t.num(e.usd),ts:t.num(e.ts),raw:e})),l=(c.holders||[]).map(e=>({who:e.username||"",amount:t.fromWei(e.amount,18),pct:t.num(e.pct),creator:!!e.creator})),u={token:i,zroUsd:d,trades:r,holders:l,me:c.me||null,comments:c.comments||[]};return n.set(a,{at:Date.now(),data:u}),u}window.Sources.register({id:"rookery",label:"Rookery",chain:"Zero",nativeSym:"ZRO",caps:{account:!0,trade:!1,transfer:!1,onchain:!1},listTokens:a,getToken:o,getAccount:async function(t,e){const n=String(t||"").trim(),s=await a(),c=[];let i=0,d=0;await Promise.all(Array.from({length:Math.min(6,s.length)},async function(){for(;d<s.length;){const t=s[d++];try{const e=(await o(t.id)).holders.find(t=>t.who===n);e&&e.amount>0&&c.push({src:"rookery",id:t.id,sym:t.sym,name:t.name,img:t.img,amount:e.amount,priceUsd:t.priceUsd,valueUsd:e.amount*t.priceUsd,pct:e.pct,mcapUsd:t.mcapUsd,ch24:t.ch24,progress:t.progress,raw:t.raw})}catch{}if(i++,e)try{e(i,s.length)}catch{}}})),c.sort((t,e)=>e.valueUsd-t.valueUsd);const r=c.reduce((t,e)=>t+e.valueUsd,0);return{src:"rookery",id:n,label:n,native:null,nativeSym:"ZRO",nativeUsd:null,valueUsd:r,holdings:c,transfers:[],raw:{}}}})})(),(()=>{const t=t=>document.getElementById(t),e=()=>Sources.get("rookery"),n="zt:accounts",s="zt:active",a={accounts:o(n,[]),active:o(s,null),tokens:[],byId:{},zroUsd:0,tab:"markets",accData:{},scanning:!1};function o(t,e){try{return JSON.parse(localStorage.getItem(t))??e}catch{return e}}function c(t,e){try{localStorage.setItem(t,JSON.stringify(e))}catch{}}function i(t,e){t=+t||0;const n=Math.abs(t);return n>=1e9?"$"+(t/1e9).toFixed(2)+"B":n>=1e6?"$"+(t/1e6).toFixed(2)+"M":n>=1e3?"$"+(t/1e3).toFixed(1)+"K":"$"+t.toFixed(e??(n<1?n<.01?6:4:2))}function d(t){t=+t||0;const e=Math.abs(t);return e>=1e9?(t/1e9).toFixed(2)+"B":e>=1e6?(t/1e6).toFixed(2)+"M":e>=1e3?(t/1e3).toFixed(1)+"K":t.toFixed(e<1?2:0)}function r(t){if(null==t)return'<span class="muted">\u2014</span>';const e=+t;return`<span class="${e>=0?"up":"down"}">${e>=0?"+":""}${e.toFixed(1)}%</span>`}function l(t){const e=(Date.now()-t)/1e3;return e<60?Math.floor(e)+"s":e<3600?Math.floor(e/60)+"m":e<86400?Math.floor(e/3600)+"h":Math.floor(e/86400)+"d"}function u(t){return String(null==t?"":t).replace(/[&<>"]/g,t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[t]))}function m(t,e){return`<div class="av" style="${e?`width:${e}px;height:${e}px`:""}">${(t.img?`<img src="${u(t.img)}" alt="" onerror="this.remove()">`:"")||u((t.sym||"?").slice(0,3))}</div>`}let p;function h(e){const n=t("toast");n.textContent=e,n.classList.add("on"),clearTimeout(p),p=setTimeout(()=>n.classList.remove("on"),1800)}async function v(){const e=await Sources.listTokens();a.tokens=e,a.byId={},e.forEach(t=>a.byId[t.id]=t);const n=e.find(t=>t.priceNative>0);a.zroUsd=n?n.priceUsd/n.priceNative:0,function(){const e=a.tokens.reduce((t,e)=>t+(e.volumeUsd||0),0);t("k0").textContent=a.tokens.length,t("k1").textContent=i(e),t("k2").textContent=a.zroUsd?"$"+a.zroUsd.toFixed(3):"\u2014",t("nMarkets").textContent=a.tokens.length}(),y()}async function g(t){const n=e();if(n&&n.getAccount){a.scanning=!0,k();try{const e=await n.getAccount(t);a.accData[t]=e}catch(t){h("Scan failed")}a.scanning=!1,k(),a.active===t&&y()}}function k(){const e=t("alist");e.innerHTML="";const n=document.createElement("button");n.className="wl"+(null==a.active?" on":""),n.innerHTML='<span class="wd"></span><span class="wt"><span class="wn">All markets</span></span>',n.onclick=()=>$(null),e.appendChild(n);for(const t of a.accounts){const n=a.accData[t.user],s=document.createElement("button");s.className="wl"+(a.active===t.user?" on":"");const o=n?i(n.valueUsd):a.scanning&&a.active===t.user?"\u2026":'<span class="skel"></span>';s.innerHTML=`<span class="wd"></span><span class="wt"><span class="wn">${u(t.label||t.user)}</span><span class="muted">@${u(t.user)}</span></span><span class="wv mono">${o}</span>`,s.onclick=()=>$(t.user),e.appendChild(s)}}function y(){const e=a.active?a.accData[a.active]:null;if(null==a.active?(t("hName").textContent="Markets",t("hSubTxt").textContent="Zero \xb7 Stinky Penguin launchpad",t("holdTab").hidden=!0,"hold"===a.tab&&(a.tab="markets")):(t("hName").textContent=a.accounts.find(t=>t.user===a.active)?.label||a.active,t("hSubTxt").textContent="@"+a.active+(e?" \xb7 "+e.holdings.length+" holdings":""),t("holdTab").hidden=!1,t("nHold").textContent=e?e.holdings.length:0),a.active&&e){t("k0l").textContent="Holdings value",t("k0").textContent=i(e.valueUsd),t("k0s").textContent=e.holdings.length+" tokens",t("k1l").textContent="Top holding";const n=e.holdings[0];t("k1").textContent=n?i(n.valueUsd):"\u2014",t("k1s").textContent=n?"$"+n.sym:"\xa0",t("k2l").textContent="ZRO price",t("k2").textContent=a.zroUsd?"$"+a.zroUsd.toFixed(3):"\u2014",t("k2s").textContent="\xa0"}else t("k0l").textContent="Tokens on Rookery",t("k0").textContent=a.tokens.length,t("k0s").textContent="\xa0",t("k1l").textContent="Total volume",t("k1").textContent=i(a.tokens.reduce((t,e)=>t+(e.volumeUsd||0),0)),t("k1s").textContent="\xa0",t("k2l").textContent="ZRO price",t("k2").textContent=a.zroUsd?"$"+a.zroUsd.toFixed(3):"\u2014",t("k2s").textContent="\xa0";document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.t===a.tab)),"hold"===a.tab&&e?function(e){if(!e.holdings.length)return void(t("panel").innerHTML=`<div class="empty">@${u(e.id)} holds no tokens on Rookery right now.</div>`);const n=e.holdings.map(t=>`\n      <tr class="ovrow" data-id="${u(t.id)}">\n        <td><div class="coin">${m(t)}<div><div class="nm">${u(t.name)} <span class="muted">${u(t.sym)}</span></div><div class="ad">${t.pct.toFixed(2)}% of supply</div></div></div></td>\n        <td class="mono">${d(t.amount)}</td>\n        <td class="mono">${i(t.priceUsd)}</td>\n        <td class="mono">${i(t.valueUsd)}</td>\n        <td>${r(t.ch24)}</td>\n      </tr>`).join("");t("panel").innerHTML=`<table class="tbl">\n      <thead><tr><th>Token</th><th>Amount</th><th>Price</th><th>Value</th><th>24h</th></tr></thead>\n      <tbody>${n}</tbody></table>`,t("panel").querySelectorAll("tr.ovrow").forEach(t=>t.onclick=()=>f(t.dataset.id))}(e):function(){const e=a.tokens.slice().sort((t,e)=>e.mcapUsd-t.mcapUsd),n=e.map(t=>`\n      <tr class="ovrow" data-id="${u(t.id)}">\n        <td><div class="coin">${m(t)}<div><div class="nm">${u(t.name)} <span class="muted">${u(t.sym)}</span></div><div class="ad">by ${u(t.creator)} \xb7 ${l(t.created)} ago</div></div></div></td>\n        <td class="mono">${i(t.priceUsd)}</td>\n        <td class="mono">${i(t.mcapUsd)}</td>\n        <td>${r(t.ch24)}</td>\n        <td><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span class="mono">${t.progress.toFixed(1)}%</span><span class="bar"><b style="width:${Math.min(100,t.progress)}%"></b></span></div></td>\n        <td class="mono">${t.holders}</td>\n        <td class="mono">${t.trades}</td>\n      </tr>`).join("");t("panel").innerHTML=e.length?`<table class="tbl">\n      <thead><tr><th>Token</th><th>Price</th><th>MCAP</th><th>24h</th><th>Bonded</th><th>Holders</th><th>Trades</th></tr></thead>\n      <tbody>${n}</tbody></table>`:'<div class="empty">No tokens yet.</div>',t("panel").querySelectorAll("tr.ovrow").forEach(t=>t.onclick=()=>f(t.dataset.id))}()}async function f(n){const s=t("tokBox");let a;t("tokModal").classList.add("on"),s.innerHTML='<div class="empty">Loading\u2026</div>';try{a=await e().getToken(n)}catch{return void(s.innerHTML='<div class="empty">Failed to load.</div>')}const o=a.token,c=[o.x&&`<a class="lnk" href="${u(o.x)}" target="_blank" rel="noopener">X</a>`,o.tg&&`<a class="lnk" href="${u(o.tg)}" target="_blank" rel="noopener">TG</a>`,o.web&&`<a class="lnk" href="${u(o.web)}" target="_blank" rel="noopener">Web</a>`].filter(Boolean).join(" \xb7 "),p=a.trades.slice(0,20).map(t=>`<tr><td><span class="pill ${"buy"===t.side?"up":"down"}">${t.side}</span> <span class="muted">@${u(t.who)}</span></td><td class="mono">${t.native.toFixed(2)} ZRO</td><td class="mono">${i(t.usd)}</td><td class="muted">${l(t.ts)}</td></tr>`).join(""),h=a.holders.slice(0,15).map((t,e)=>`<tr><td>${e+1}. @${u(t.who)}${t.creator?' <span class="pill up">dev</span>':""}</td><td class="mono">${d(t.amount)}</td><td class="mono">${t.pct.toFixed(2)}%</td></tr>`).join("");s.innerHTML=`\n      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">${m(o,46)}<div><h3 style="margin:0">${u(o.name)} <span class="muted">${u(o.sym)}</span></h3><p style="margin:0">by ${u(o.creator)} \xb7 ${l(o.created)} ago ${c?"\xb7 "+c:""}</p></div><div class="spacer" style="flex:1"></div><button class="lnk" id="tkClose">Close</button></div>\n      ${o.desc?`<p>${u(o.desc)}</p>`:""}\n      <div class="hero" style="grid-template-columns:repeat(3,1fr);margin:6px 0 10px">\n        <div class="kpi card"><div class="lbl">Market cap</div><div class="val mono" style="font-size:22px">${i(o.mcapUsd)}</div><div class="sub">${r(o.ch24)} 24h</div></div>\n        <div class="kpi card"><div class="lbl">Price</div><div class="val mono" style="font-size:22px">${i(o.priceUsd)}</div><div class="sub">${o.priceNative.toExponential(2)} ZRO</div></div>\n        <div class="kpi card"><div class="lbl">Bonded</div><div class="val mono" style="font-size:22px">${o.progress.toFixed(1)}%</div><div class="sub">${o.holders} holders \xb7 ${o.trades} trades</div></div>\n      </div>\n      <div class="progress"><b style="width:${Math.min(100,o.progress)}%"></b></div>\n      <div class="split" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">\n        <div><div class="side-h">HOLDERS</div><div class="scroll"><table class="tbl">${h||'<tr><td class="empty">\u2014</td></tr>'}</table></div></div>\n        <div><div class="side-h">RECENT TRADES</div><div class="scroll"><table class="tbl">${p||'<tr><td class="empty">\u2014</td></tr>'}</table></div></div>\n      </div>`,t("tkClose").onclick=()=>t("tokModal").classList.remove("on")}function $(t){a.active=t,c(s,t),a.active?a.tab="hold":a.tab="markets",k(),y(),t&&!a.accData[t]&&g(t)}function b(){document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{a.tab=t.dataset.t,y()}),t("refreshBtn").onclick=async()=>{t("refreshBtn").disabled=!0,await v(),a.active&&await g(a.active),t("refreshBtn").disabled=!1,h("Refreshed")};const e=t("addModal");t("addBtn").onclick=()=>{t("aUser").value="",t("aLabel").value="",t("aErr").textContent="",e.classList.add("on"),t("aUser").focus()},t("aCancel").onclick=()=>e.classList.remove("on"),t("aOk").onclick=()=>{const s=t("aUser").value.trim();var o,i;s?(e.classList.remove("on"),o=s,i=t("aLabel").value.trim(),(o=o.replace(/^@/,"").trim())&&(a.accounts.some(t=>t.user===o)||a.accounts.push({user:o,label:i||""}),c(n,a.accounts),$(o))):t("aErr").textContent="Enter a username"},t("aUser").onkeydown=e=>{"Enter"===e.key&&t("aOk").click()},[e,t("tokModal")].forEach(t=>t.onclick=e=>{e.target===t&&t.classList.remove("on")}),document.addEventListener("keydown",n=>{"Escape"===n.key&&(e.classList.remove("on"),t("tokModal").classList.remove("on"))})}async function x(){b(),k(),y(),await v(),a.active&&a.accounts.some(t=>t.user===a.active)&&g(a.active),setInterval(()=>{v().catch(()=>{})},3e4)}"loading"===document.readyState?document.addEventListener("DOMContentLoaded",x):x()})();
+</script>
+</body>
+</html>

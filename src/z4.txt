@@ -1,0 +1,24 @@
+<div class="kpi card"><div class="lbl" id="k2l">ZRO price</div><div class="val mono" id="k2"><span class="skel"></span></div><div class="sub" id="k2s">&nbsp;</div></div>
+</div>
+<div class="tabs" id="tabs">
+<button class="tab on" data-t="markets">Markets<span class="n" id="nMarkets">0</span></button>
+<button class="tab" data-t="hold" id="holdTab" hidden>Holdings<span class="n" id="nHold">0</span></button>
+</div>
+<div class="panel card scroll" id="panel"></div>
+<div class="foot">
+Data: Rookery (rookery.stinkypenguin.xyz) · Zero by LayerZero · ZRO-priced bonding curve · pre-mainnet (balances migrate 1:1 at mainnet)<br>
+Accounts are tracked by Rookery username · more sources plug in as they launch
+</div>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="addModal"><div class="mbox" role="dialog" aria-modal="true">
+<h3>Add account</h3><p>Track a Rookery account by its username (shown on trades &amp; holders).</p>
+<label>Rookery username<input id="aUser" placeholder="e.g. pengu_408c3d" autocomplete="off" spellcheck="false"></label>
+<label>Label <span class="muted">(optional)</span><input id="aLabel" placeholder="e.g. My account" maxlength="32" autocomplete="off"></label>
+<div class="merr" id="aErr"></div>
+<div class="mbtns"><button class="btn" id="aCancel">Cancel</button><button class="btn primary" id="aOk">Add &amp; scan</button></div>
+</div></div>
+<div class="modal" id="tokModal"><div class="mbox" role="dialog" aria-modal="true" id="tokBox"></div></div>
+<script>
+(()=>{const t=new Map,e=[],n={register(n){if(!n||!n.id)throw new Error("adapter needs an id");return t.has(n.id)||e.push(n.id),n.caps=Object.assign({account:!1,trade:!1,transfer:!1,onchain:!1},n.caps||{}),t.set(n.id,n),window.dispatchEvent(new CustomEvent("sources:changed",{detail:{id:n.id}})),n},get:e=>t.get(e),list:()=>e.map(e=>t.get(e)).filter(Boolean),has:e=>t.has(e),default:()=>t.get(e[0]),async listTokens(){const t=[];for(const e of this.list())try{const n=await e.listTokens();Array.isArray(n)&&t.push(...n)}catch(t){console.warn("[src]",e.id,"listTokens",t)}return t},srcOf:e=>t.get(e)};n.util={num(t){const e=+t;return Number.isFinite(e)?e:0},fromWei(t,e=18){try{const n=String(t);return n&&"0"!==n?Number(BigInt(n))/10**e:0}catch{return+t/10**e||0}},async json(t,e){const n=await fetch(t,Object.assign({headers:{accept:"application/json"}},e||{}));if(!n.ok)throw new Error(t+" "+n.status);return n.json()},shortUsd(t){t=+t||0;const e=Math.abs(t);return e>=1e9?"$"+(t/1e9).toFixed(2)+"B":e>=1e6?"$"+(t/1e6).toFixed(2)+"M":e>=1e3?"$"+(t/1e3).toFixed(1)+"K":"$"+t.toFixed(e<1?4:2)}},window.Sources=n})(),(()=>{const t=window.Sources.util,e="/rk/api",n=new Map;function s(e){return{src:"rookery",id:e.id,sym:e.symbol,name:e.name,img:e.image?"/rk"+e.image:"",priceUsd:t.num(e.priceUsd),priceNative:t.num(e.priceZro),mcapUsd:t.num(e.mcapUsd),ch5m:null==e.change5m?null:t.num(e.change5m),ch1h:null==e.change1h?null:t.num(e.change1h),ch24:null==e.change24h?null:t.num(e.change24h),pr

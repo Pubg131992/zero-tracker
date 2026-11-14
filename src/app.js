@@ -72,8 +72,10 @@
       const row = document.createElement('button');
       row.className = 'wl' + (state.active === a.user ? ' on' : '');
       const val = acc ? usd(acc.valueUsd) : (state.scanning && state.active === a.user ? '…' : '<span class="skel"></span>');
-      row.innerHTML = `<span class="wd"></span><span class="wt"><span class="wn">${esc(a.label || a.user)}</span><span class="muted">@${esc(a.user)}</span></span><span class="wv mono">${val}</span>`;
+      row.innerHTML = `<span class="wd"></span><span class="wt"><span class="wn">${esc(a.label || a.user)}</span><span class="muted">@${esc(a.user)}</span></span><span class="wv mono">${val}</span><span class="wx" title="Remove">×</span>`;
       row.onclick = () => selectAccount(a.user);
+      const x = row.querySelector('.wx');
+      if (x) x.onclick = (e) => { e.stopPropagation(); removeAccount(a.user); };
       box.appendChild(row);
     }
   }
@@ -178,6 +180,17 @@
     user = user.replace(/^@/, '').trim(); if (!user) return;
     if (!state.accounts.some(a => a.user === user)) state.accounts.push({ user, label: label || '' });
     save(LS.acc, state.accounts); selectAccount(user);
+  }
+  function removeAccount(user) {
+    const a = state.accounts.find(x => x.user === user);
+    if (!a) return;
+    if (!confirm(`Remove @${user} from tracking?`)) return;
+    state.accounts = state.accounts.filter(x => x.user !== user);
+    delete state.accData[user];
+    save(LS.acc, state.accounts);
+    if (state.active === user) { state.active = null; save(LS.active, null); state.tab = 'markets'; }
+    renderSidebar(); renderCurrent();
+    toast('Removed @' + user);
   }
 
   /* ---------- wiring ---------- */
